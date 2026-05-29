@@ -1,95 +1,120 @@
-import { useState } from 'react';
-import './App.css';
+import { useState, useEffect } from "react";
+import "./App.css";
 
-import Header from './Header';
-import Recherche from './Recherche';
-import LigneBus from './LigneBus';
-import DetailLigne from './DetailLigne';
-import Footer from './Footer';
+import Header from "./Header";
+import Recherche from "./Recherche";
+import LigneBus from "./LigneBus";
+import DetailLigne from "./DetailLigne";
+import Footer from "./Footer";
 
 function App() {
+  const [lignes, setLignes] = useState([]);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState(null);
 
   const [recherche, setRecherche] = useState("");
   const [ligneSelectionnee, setLigneSelectionnee] = useState(null);
 
-  const lignes = [
-    {
-      id: 1,
-      numero: "1",
-      depart: "Parcelles Assainies",
-      arrivee: "Plateau",
-      arrets: 14,
-      listeArrets: ["Parcelles U14", "Camberene", "Colobane", "Plateau"]
-    },
-    {
-      id: 2,
-      numero: "7",
-      depart: "Guediawaye",
-      arrivee: "Place Obelisque",
-      arrets: 18,
-      listeArrets: ["Guediawaye", "Pikine", "Grand Yoff", "Place Obelisque"]
-    },
-    {
-      id: 3,
-      numero: "15",
-      depart: "Pikine",
-      arrivee: "Medina",
-      arrets: 12,
-      listeArrets: ["Pikine", "Hann", "Colobane", "Medina"]
+  useEffect(() => {
+    fetch("http://localhost:5000/lignes")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Erreur serveur : " + response.status);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        setLignes(data);
+        setChargement(false);
+      })
+      .catch((error) => {
+        setErreur(error.message);
+        setChargement(false);
+      });
+  }, []);
+
+  const lignesFiltrees = lignes.filter((l) => {
+    return (
+      l.depart.toLowerCase().includes(recherche.toLowerCase()) ||
+      l.arrivee.toLowerCase().includes(recherche.toLowerCase()) ||
+      l.numero.includes(recherche)
+    );
+  });
+
+  function handleClickLigne(ligne) {
+    if (ligneSelectionnee && ligneSelectionnee.id === ligne.id) {
+      setLigneSelectionnee(null);
+    } else {
+      setLigneSelectionnee(ligne);
     }
-  ];
+  }
 
-  const lignesFiltrees = lignes.filter(l =>
-    l.depart.toLowerCase().includes(recherche.toLowerCase()) ||
-    l.arrivee.toLowerCase().includes(recherche.toLowerCase()) ||
-    l.numero.includes(recherche)
-  );
+  // 🔵 CHARGEMENT
+  if (chargement) {
+    return (
+      <div className="App">
+        <Header />
+        <main className="contenu">
+          <p className="message-chargement">
+            Chargement des lignes...
+          </p>
+        </main>
+      </div>
+    );
+  }
 
- function handleClickLigne(ligne) {
-  setLigneSelectionnee(prev =>
-    prev && prev.id === ligne.id ? null : ligne
-  );
-}
+  // 🔴 ERREUR
+  if (erreur) {
+    return (
+      <div className="App">
+        <Header />
+        <main className="contenu">
+          <div className="message-erreur">
+            <p>Impossible de charger les lignes.</p>
+            <p className="erreur-detail">{erreur}</p>
+            <p>
+              Vérifiez que le serveur Flask est lancé (python api/app.py)
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
+  // 🟢 NORMAL
   return (
     <div className="App">
-
       <Header />
 
       <main className="contenu">
-
-        <Recherche
-          valeur={recherche}
-          onChange={setRecherche}
-        />
-        <button onClick={() => setRecherche("")}>
-  Effacer
-</button>
+        <Recherche valeur={recherche} onChange={setRecherche} />
 
         <p className="resultat-recherche">
-          {lignesFiltrees.length} ligne{lignesFiltrees.length > 1 ? 's' : ''} trouvée{lignesFiltrees.length > 1 ? 's' : ''}
+          {lignesFiltrees.length} ligne
+          {lignesFiltrees.length > 1 ? "s" : ""} trouvée
+          {lignesFiltrees.length > 1 ? "s" : ""}
         </p>
 
-        {lignesFiltrees.map(ligne => (
+        {lignesFiltrees.map((ligne) => (
           <LigneBus
             key={ligne.id}
             numero={ligne.numero}
             depart={ligne.depart}
             arrivee={ligne.arrivee}
             arrets={ligne.arrets}
-            estSelectionnee={ligneSelectionnee && ligneSelectionnee.id === ligne.id}
+            estSelectionnee={
+              ligneSelectionnee && ligneSelectionnee.id === ligne.id
+            }
             onClick={() => handleClickLigne(ligne)}
           />
         ))}
 
-       {ligneSelectionnee ? (
-  <DetailLigne ligne={ligneSelectionnee} />
-) : null}
-
+        {ligneSelectionnee && (
+          <DetailLigne ligne={ligneSelectionnee} />
+        )}
       </main>
 
       <Footer />
-
     </div>
   );
 }
