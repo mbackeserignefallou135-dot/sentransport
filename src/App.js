@@ -62,6 +62,9 @@ function App() {
           valeur={recherche}
           onChange={setRecherche}
         />
+        <button onClick={() => setRecherche("")}>
+  Effacer
+</button>
 
         <p className="resultat-recherche">
           {lignesFiltrees.length} ligne{lignesFiltrees.length > 1 ? 's' : ''} trouvée{lignesFiltrees.length > 1 ? 's' : ''}
